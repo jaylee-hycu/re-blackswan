@@ -1,0 +1,34 @@
+name: update
+on:
+  schedule:
+    - cron: "0 7 * * 4"     # 매주 목요일 16:00 한국 시간 (07:00 UTC)
+  workflow_dispatch:         # Actions 화면에서 수동 실행
+permissions:
+  contents: write
+concurrency: update
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: 수집
+        env:
+          REB_API_KEY: ${{ secrets.REB_API_KEY }}
+          ECOS_API_KEY: ${{ secrets.ECOS_API_KEY }}
+        run: python scripts/fetch.py
+      - name: 계산
+        run: python scripts/compute.py
+      - name: 페이지 생성
+        run: python scripts/build.py
+      - name: 저장
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs data/data.json data/series.csv data/history
+          git diff --cached --quiet || git commit -m "자동 갱신 $(TZ=Asia/Seoul date +%F)"
+          git push

@@ -1,0 +1,364 @@
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: 관측소 콘솔 — 상단 상태 요약 → 전달 경로(입력·관문·결과) → 지표별 소형 차트 → 기준·출처 */
+:root{
+  --bg:#f5f6f7; --surface:#ffffff; --ink:#111417; --ink-2:#4b5158; --ink-3:#7a8088;
+  --line:#dfe2e6; --grid:#eceef1; --accent:#2a78d6; --accent-soft:#e3eefb;
+  --neg:#2a78d6; --pos:#d03b3b;
+  --g-stress:#4a3aa7; --g-fund:#1baf7a; --g-vuln:#e87ba4; --g-kr:#2a78d6; --g-res:#c77a12;
+  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+  --f-body:"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#121417; --surface:#1a1d21; --ink:#f2f4f6; --ink-2:#b9bec5; --ink-3:#8a9098;
+  --line:#2c3138; --grid:#24282e; --accent:#3987e5; --accent-soft:#1d2c3f;
+  --neg:#3987e5; --pos:#e66767; --g-stress:#9085e9; --g-fund:#199e70; --g-vuln:#d55181; --g-kr:#3987e5; --g-res:#e0a040; color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --bg:#121417; --surface:#1a1d21; --ink:#f2f4f6; --ink-2:#b9bec5; --ink-3:#8a9098;
+  --line:#2c3138; --grid:#24282e; --accent:#3987e5; --accent-soft:#1d2c3f;
+  --neg:#3987e5; --pos:#e66767; --g-stress:#9085e9; --g-fund:#199e70; --g-vuln:#d55181; --g-kr:#3987e5; --g-res:#e0a040; color-scheme:dark; }
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:28px 48px;display:grid;gap:28px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px}
+.brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.brand h1{margin:0;font-size:30px;font-weight:600;letter-spacing:-.02em;text-wrap:balance}
+.brand .sub{color:var(--ink-2);font-size:14px}
+.tag{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);border:1px solid var(--line);border-radius:4px;padding:2px 6px}
+.asof{color:var(--ink-3);font-size:13px;font-family:var(--f-mono)}
+.motto{margin:6px 0 0;color:var(--ink-2);font-size:14px;max-width:62ch}
+h2{margin:0 0 12px;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.groups{display:grid;gap:12px}
+.grp{--g:var(--g-kr);display:grid;grid-template-columns:200px 1fr;gap:14px;align-items:start;padding:14px;border-radius:10px;border:1px solid color-mix(in srgb,var(--g) 28%,var(--line));background:color-mix(in srgb,var(--g) 6%,var(--bg))}
+.grp.stress{--g:var(--g-stress)} .grp.fund{--g:var(--g-fund)} .grp.vuln{--g:var(--g-vuln)} .grp.kr{--g:var(--g-kr)} .grp.res{--g:var(--g-res)} .grp.mkt{--g:var(--g-fund)} .grp.glob{--g:var(--g-stress)} .cgrp.glob{--g:var(--g-stress)}
+.ghd{display:grid;gap:4px;min-width:0}
+.ghd .gn{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px}
+.ghd .gn i{width:10px;height:10px;border-radius:3px;background:var(--g);flex:none}
+.ghd .gd{font-size:12.5px;color:var(--ink-2);line-height:1.45}
+.ghd .gtag{font-family:var(--f-mono);font-size:11px;color:var(--ink-3);letter-spacing:.04em}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.cgrp{display:grid;gap:10px}
+.cgrp + .cgrp{margin-top:18px}
+.cgh{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px}
+.cgh i{width:10px;height:10px;border-radius:3px;background:var(--g);flex:none}
+.cgh span{font-weight:400;font-size:12.5px;color:var(--ink-3)}
+.cgrp.stress{--g:var(--g-stress)} .cgrp.fund{--g:var(--g-fund)} .cgrp.vuln{--g:var(--g-vuln)} .cgrp.kr{--g:var(--g-kr)} .cgrp.res{--g:var(--g-res)} .cgrp.mkt{--g:var(--g-fund)}
+@media (max-width:760px){.grp{grid-template-columns:1fr}}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:grid;gap:6px;min-width:0}
+.tile .nm{font-size:13px;color:var(--ink-2);line-height:1.35;min-height:2.7em}
+.tile .val{font-family:var(--f-mono);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
+.tile .chg{font-family:var(--f-mono);font-size:12px;color:var(--ink-2)}
+.tile .meta{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--ink-3);font-family:var(--f-mono)}
+.pill{white-space:nowrap;flex:none;display:inline-flex;align-items:center;gap:5px;font-family:var(--f-body);font-size:12px;font-weight:600;color:var(--ink);padding:2px 8px 2px 6px;border-radius:999px;background:var(--bg);border:1px solid var(--line)}
+.pill i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.pill.good i{background:var(--good)} .pill.warn i{background:var(--warn)} .pill.serious i{background:var(--serious)} .pill.ref i{background:var(--ink-3)}
+.pill .ic{font-style:normal;font-size:11px}
+.flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:10px;align-items:stretch}
+.stage{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;display:grid;gap:8px;align-content:start;min-width:0}
+.stage h3{margin:0;font-size:15px;font-weight:600}
+.stage p{margin:0;font-size:13px;color:var(--ink-2)}
+.stage ul{margin:0;padding-left:18px;font-size:13px;color:var(--ink-2);display:grid;gap:2px}
+.stage.pending{border-style:dashed;background:transparent}
+.arrow{align-self:center;color:var(--ink-3);font-family:var(--f-mono);font-size:18px}
+.contrib{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.cbox{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;min-width:0}
+.cbox h3{margin:0 0 10px;font-size:14px;font-weight:600}
+.crow{display:grid;grid-template-columns:110px 1fr 56px;gap:8px;align-items:center;font-size:13px;padding-block:3px}
+.crow .lb{color:var(--ink-2)}
+.crow .num{font-family:var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
+.track{position:relative;height:14px;background:var(--grid);border-radius:3px}
+.track .mid{position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--ink-3)}
+.track .bar{position:absolute;top:2px;bottom:2px;border-radius:2px}
+.cnote{margin:10px 0 0;font-size:12px;color:var(--ink-3)}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface)}
+.seg button{font:inherit;font-size:13px;padding:5px 12px;border:0;background:transparent;color:var(--ink-2);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.hint{font-size:12px;color:var(--ink-3)}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px}
+.chart{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-width:0}
+.chart .hd{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}
+.chart h3{margin:0;font-size:14px;font-weight:600}
+.chart .unit{font-size:12px;color:var(--ink-3)}
+.chart .cv{position:relative;height:180px;margin-top:8px}
+.tip{position:absolute;top:4px;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:12px;display:flex;gap:8px;pointer-events:none;font-family:var(--f-mono);color:var(--ink-2)}
+.tip[hidden]{display:none}
+.tip b{color:var(--ink);font-weight:500}
+.chart .cap{margin:6px 0 0;font-size:12px;color:var(--ink-3)}
+.pf{display:grid;gap:12px}
+.pfkpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.pfkpi .tile .val{font-size:20px}
+.tblwrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+table.t{border-collapse:collapse;width:100%;font-size:13px;min-width:640px}
+table.t th,table.t td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--grid);white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t th{color:var(--ink-3);font-weight:500;font-size:12px}
+table.t td:first-child,table.t th:first-child,table.t td.l,table.t th.l{text-align:left}
+table.t tr:last-child td{border-bottom:0}
+table.t td.mono{font-family:var(--f-mono)}
+.wbar{display:inline-block;height:8px;border-radius:2px;background:var(--g-kr);vertical-align:middle;margin-left:6px}
+.pfnote{font-size:12.5px;color:var(--ink-2);display:grid;gap:4px}
+.pfnote b{color:var(--ink)}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;font-size:13px;color:var(--ink-2)}
+.notes h3{margin:0 0 6px;font-size:14px;color:var(--ink);font-weight:600}
+.notes p,.notes ul{margin:0}
+.notes ul{padding-left:18px;display:grid;gap:3px}
+.notes a{color:var(--accent)}
+.alertbox{border-left:3px solid var(--serious);background:var(--surface);padding:10px 14px;border-radius:0 6px 6px 0;font-size:13px;color:var(--ink-2)}
+.alertbox b{color:var(--ink)}
+@media (max-width:760px){.flow{grid-template-columns:1fr}.arrow{transform:rotate(90deg);justify-self:center}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.gl{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px 14px;font-size:13px}
+.gl div{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--grid)}
+.gl .p{font-family:var(--f-mono);color:var(--ink-3);font-size:12px;margin-left:auto;margin-right:6px}
+.read{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:10px}
+.read h3{margin:0;font-size:16px}
+.read ol{margin:0;padding-left:20px;display:grid;gap:6px;font-size:14px;color:var(--ink-2)}
+.read b{color:var(--ink)}
+.read .lab{font-family:var(--f-mono);font-size:11px;color:var(--ink-3);border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-left:4px}
+.flow4{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;gap:10px;align-items:stretch}
+@media (max-width:900px){.flow4{grid-template-columns:1fr}.flow4 .arrow{transform:rotate(90deg);justify-self:center}}
+.tb2{display:flex;gap:8px;flex-wrap:wrap}
+.wrap>section,.wrap>div{min-width:0}
+.nextup{margin-top:4px;color:var(--ink);font-family:var(--f-body);font-size:13px}
+.nextup b{font-weight:600}
+.tag2{font-size:11px;color:var(--ink-3);border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-left:4px}
+</style>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="brand"><h1>부동산 Black Swan</h1><span class="tag">시제품 v0.4</span></div>
+      <p class="motto">한국 아파트 시장을 글로벌 금융시장의 부분집합으로 봅니다. 바깥의 충격이 금리를 거쳐 들어오는지, 안쪽에 불붙기 쉬운 빚과 재고가 쌓였는지, 그리고 가격이 이미 얼마나 달아올랐는지를 한 화면에 놓습니다.</p>
+    </div>
+    <div class="asof"><div id="asof"></div><div class="nextup" id="nextup"></div></div>
+  </header>
+
+  <section aria-labelledby="h-cal">
+    <h2 id="h-cal">자료 기준일과 다음 갱신</h2>
+    <div class="tblwrap"><table class="t" id="cal"></table></div>
+    <p class="hint" style="margin:6px 0 0">"다음 발표"는 기관의 통상 발표 주기로 잡은 예상일입니다(금통위는 언론에 보도된 일정). 이 페이지는 매주 목요일 16시(한국 시간)에 자동으로 다시 계산됩니다.</p>
+  </section>
+
+  <section class="read" aria-labelledby="h-read">
+    <h3 id="h-read">이번 판독 <span class="lab">자동 생성</span></h3>
+    <ol id="read"></ol>
+    <p class="hint" style="margin:0">숫자와 단계는 규칙에 따라 자동으로 쓰입니다. "읽는 법" 문단은 해석이며 사실이 아닙니다.</p>
+  </section>
+
+  <section aria-labelledby="h-sum">
+    <h2 id="h-sum">현재 상태 · 2006년(자료가 짧으면 시작 시점) 이후 분포에서의 위치</h2>
+    <div class="groups" id="groups"></div>
+  </section>
+
+  <section aria-labelledby="h-flow">
+    <h2 id="h-flow">전달 경로</h2>
+    <div class="flow4">
+      <div class="stage"><h3>글로벌 입력</h3><p>바깥 금융시장의 불과 금리 압력</p><ul><li>OFR 금융스트레스지수</li><li>미국·일본 10년물 금리</li><li>원/달러 환율</li></ul></div>
+      <div class="arrow" aria-hidden="true">→</div>
+      <div class="stage"><h3>한국 금리 관문</h3><p>바깥 금리가 대출 금리로 넘어오는 길목</p><ul><li>국고채 3년</li><li>신규 주택담보대출 금리</li><li>기준금리 (참고)</li></ul></div>
+      <div class="arrow" aria-hidden="true">→</div>
+      <div class="stage pending"><h3>정책 필터</h3><p>아직 숫자로 넣지 못했습니다.</p><ul><li>LTV·DSR 규제, 규제지역 지정</li><li>대출 총량 관리</li></ul></div>
+      <div class="arrow" aria-hidden="true">→</div>
+      <div class="stage"><h3>국내 취약성 → 가격</h3><p>빚·전세·재고가 충격을 키우는지, 가격이 얼마나 달아올랐는지</p><ul><li>대출 증가율, 전세 하락, 미분양</li><li>수급(매수우위)·거래량·상승 지역 비율</li><li>부동산원 매매·전세, 실거래가</li></ul></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-ch">
+    <div class="toolbar">
+      <h2 id="h-ch" style="margin:0">지표 추이</h2>
+      <div class="tb2">
+        <div class="seg" role="group" aria-label="보기">
+          <button type="button" data-m="sig" aria-pressed="true">판정값</button>
+          <button type="button" data-m="lvl" aria-pressed="false">원 지표</button>
+        </div>
+        <div class="seg" role="group" aria-label="기간">
+          <button type="button" data-y="5" aria-pressed="false">5년</button>
+          <button type="button" data-y="10" aria-pressed="true">10년</button>
+          <button type="button" data-y="0" aria-pressed="false">전체</button>
+        </div>
+      </div>
+    </div>
+    <div id="charts"></div>
+    <p class="hint" style="margin:8px 0 0">판정값 보기의 점선은 2006년 이후 분포의 75·90 백분위(가격 지표는 10·25 백분위도)입니다.</p>
+  </section>
+
+  <section class="notes" aria-label="기준과 출처">
+    <div><h3>상태 표시 기준</h3><ul>
+      <li>금리·취약성: 75 백분위 미만 <b>안정</b>, 75~90 <b>주의</b>, 90 이상 <b>경계</b></li>
+      <li>가격·수급·거래 지표는 양쪽을 봅니다: 90 이상 <b>경계(과열)</b>, 10 이하 <b>경계(급랭)</b>, 75~90 또는 10~25 <b>주의</b></li>
+      <li>과거 분포는 2006년 이후입니다. 주택관련대출은 2008년 12월, 전세자금대출은 2016년 12월, 미분양·실거래가지수는 2007년 1월부터 판정값이 있습니다. 금리는 3개월 변화, 대출·가격 지수는 전년동월비, 미분양은 수준으로 판정합니다. 전세 하락은 전국 아파트 전세가 전년동월비의 부호를 뒤집은 값입니다.</li>
+      <li>글로벌: OFR 지수는 수준, 미국·일본 금리는 21영업일 상승 폭, 원/달러는 21영업일 상승률(원화 약세 속도)로 판정하며 분포는 2000년 이후입니다. 차트는 주간 마지막 값입니다.</li>
+      <li>실질 실거래가지수 = 실거래가격지수 ÷ 소비자물가지수(ECOS 901Y009), 2026년 6월 = 100. 물가 상승을 뺀 집값 변화로, 판정에 씁니다.</li>
+      <li>달러 환산 실거래가지수 = 실거래가격지수 ÷ 원/달러 월평균 환율(FRED DEXKOUS)을 2026년 6월 = 100으로 다시 맞춘 값입니다. 해외 투자자가 달러로 본 서울 아파트 값의 변화로, 판정 없이 <b>참고</b>로만 표시합니다(국내 거주자의 부담은 원화로 정해지기 때문).</li>
+      <li>역전세 위험 지역 비율은 부동산원 시군구 가운데 아파트 전세가격지수가 2년 전보다 낮은 곳의 비율입니다(전세 계약 기간 2년 기준).</li>
+      <li>매수우위지수는 수준(100 = 매수·매도 균형), 거래량은 3개월 합계의 전년동기비, 상승 지역 비율은 부동산원 시군구(최하위 지역) 가운데 1년 상승률이 0보다 큰 곳의 비율입니다. 주간 지표의 분포는 2012년 이후입니다.</li>
+      <li>기준금리는 계단식으로 움직여 분포가 고르지 않으므로 참고로만 표시합니다.</li>
+      <li>이 기준은 이 페이지가 정한 것으로, 공식 경보 단계가 아닙니다.</li>
+    </ul></div>
+    <div><h3>데이터 출처</h3><ul>
+      <li>한국부동산원 R-ONE Open API: 월간 아파트 매매·전세가격지수(A_2024_00045·00050, 2026.06=100, 2003.11~), 월간 매매수급동향(A_2024_00076), 아파트 매매거래현황(A_2024_00554), 주간 매매가격지수·매매수급동향</li>
+      <li><a href="https://www.financialresearch.gov/financial-stress-index/" target="_blank" rel="noopener">OFR Financial Stress Index</a>, <a href="https://fred.stlouisfed.org/" target="_blank" rel="noopener">FRED</a> (DGS10, DEXKOUS), 일본 재무성 국채 금리 (일별)</li>
+      <li>한국은행 ECOS: 소비자물가지수 901Y009,</li>
+      <li>아파트 매매 실거래가격지수: 901Y089</li>
+      <li>국고채 3년 721Y001, 기준금리 722Y001, 신규취급액 기준 주택담보대출 금리 121Y006</li>
+      <li>주택관련대출·전세자금대출(예금은행) 잔액 151Y005 (단위 십억원), 미분양주택 901Y074</li>
+      <li>매주 목요일 16시(한국 시간) GitHub Actions로 다시 수집·계산합니다. 갱신 시각은 상단에 표시됩니다.</li>
+    </ul></div>
+    <div><h3>한계</h3><ul>
+      <li>v0.1의 ECOS 수작업 연결 지수와 R-ONE 공식 시계열의 1년 상승률 차이는 최대 0.18%p(상관 0.9999)였습니다. v0.2는 R-ONE 값을 씁니다.</li><li>거래량은 신고 기준이라 최근 달은 늦게 들어온 신고로 나중에 늘 수 있습니다.</li>
+      <li>원/달러는 FRED 공개 시차로 약 1주 늦습니다.</li>
+      <li>정책 규제, 입주 물량, 지역별 차이(강남·비강남 등)는 아직 없습니다.</li>
+      <li>금리가 가격에 반영되기까지는 수개월~1년 이상 걸리는 것으로 알려져 있어, 금리 관문 신호는 가격보다 먼저 켜집니다.<span class="hint"> [추정]</span></li>
+      <li>투자 권유가 아니며, 연구용 시제품입니다.</li>
+    </ul></div>
+  </section>
+</div>
+
+<script>
+const D = __DATA__;
+const GROUPS = [
+  {g:'glob', nm:'글로벌 입력', tag:'바깥에서 불이 났는가', d:'세계 금융시장 스트레스는 수준으로, 금리와 환율은 최근 21영업일 변화로 판정합니다.'},
+  {g:'kr', nm:'한국 금리 관문', tag:'바깥 금리가 들어오는 길', d:'금리가 얼마나 빠르게 오르는가. 3개월 변화의 백분위로 판정합니다.'},
+  {g:'vuln', nm:'국내 취약성', tag:'충격을 키우는 빚과 재고', d:'대출이 빠르게 불어나는가, 전세가 꺼지는가, 팔리지 않은 집이 쌓이는가.'},
+  {g:'mkt', nm:'수급·거래·확산', tag:'불이 붙는 속도와 범위', d:'사려는 사람과 팔려는 사람의 균형, 실제 거래량, 오르는 지역이 얼마나 넓은가. 양쪽을 다 봅니다.'},
+  {g:'res', nm:'가격 (부동산원·실거래)', tag:'이미 얼마나 달아올랐나', d:'아파트 가격의 1년 변화. 너무 뜨거워도, 너무 차가워도 표시합니다.'},
+];
+const pp=v=>(v>0?'+':'')+v.toFixed(2)+'%p', pc=v=>(v>0?'+':'')+v.toFixed(1)+'%';
+const bil=v=>Math.round(v*1e9).toLocaleString('ko-KR')+'원';
+const IND = [
+  {g:'glob', k:'g_ofr', nm:'OFR 금융스트레스지수', unit:'0 = 평균', fmt:v=>v.toFixed(2), lvl:true},
+  {g:'glob', k:'g_ust10', nm:'미국 10년물 국채금리', unit:'%', fmt:v=>v.toFixed(2)+'%', sf:pp, sl:'21영업일'},
+  {g:'glob', k:'g_jgb10', nm:'일본 10년물 국채금리', unit:'%', fmt:v=>v.toFixed(3)+'%', sf:pp, sl:'21영업일'},
+  {g:'glob', k:'g_krw', nm:'원/달러 환율', unit:'원', fmt:v=>Math.round(v).toLocaleString('ko-KR')+'원', sf:v=>(v>0?'+':'')+v.toFixed(1)+'%', sl:'21영업일'},
+  {g:'kr', k:'ktb3', nm:'국고채 3년', unit:'%', fmt:v=>v.toFixed(2)+'%', sf:pp, sl:'3개월'},
+  {g:'kr', k:'mort', nm:'주택담보대출 금리 (신규)', unit:'%', fmt:v=>v.toFixed(2)+'%', sf:pp, sl:'3개월'},
+  {g:'kr', k:'base', nm:'기준금리', unit:'%', fmt:v=>v.toFixed(2)+'%', sf:pp, sl:'3개월', ref:true},
+  {g:'vuln', k:'hloan', nm:'주택관련대출 잔액', unit:'원', fmt:bil, sf:pc, sl:'1년'},
+  {g:'vuln', k:'jloan', nm:'전세자금대출 잔액 (예금은행)', unit:'원', fmt:bil, sf:pc, sl:'1년'},
+  {g:'vuln', k:'jeon_fall', nm:'전세 하락률 (전국 아파트)', unit:'지수, 2026.06=100', fmt:v=>v.toFixed(2), sf:pc, sl:'1년 하락률', sunit:'% (+면 하락)'},
+  {g:'vuln', k:'rev_jeon', nm:'역전세 위험 지역 비율', unit:'% (시군구)', fmt:v=>v.toFixed(1)+'%', lvl:true},
+  {g:'vuln', k:'unsold', nm:'미분양 주택 (전국)', unit:'호', fmt:v=>Math.round(v).toLocaleString('ko-KR')+'호', lvl:true},
+  {g:'vuln', k:'unsold_metro', nm:'미분양 주택 (수도권)', unit:'호', fmt:v=>Math.round(v).toLocaleString('ko-KR')+'호', lvl:true},
+  {g:'mkt', k:'sup_seo_wk', nm:'매수우위지수 (서울, 주간)', unit:'100 = 균형', fmt:v=>v.toFixed(1), lvl:true},
+  {g:'mkt', k:'sup_nat_wk', nm:'매수우위지수 (전국, 주간)', unit:'100 = 균형', fmt:v=>v.toFixed(1), lvl:true},
+  {g:'mkt', k:'wk_seo', nm:'아파트 매매가격 (서울, 주간)', unit:'지수, 2026.06=100', fmt:v=>v.toFixed(2), sf:v=>(v>0?'+':'')+v.toFixed(2)+'%', sl:'4주'},
+  {g:'mkt', k:'trd_nat', nm:'아파트 매매거래 (전국)', unit:'호/월', fmt:v=>Math.round(v).toLocaleString('ko-KR')+'호', sf:pc, sl:'3개월 합 1년'},
+  {g:'mkt', k:'trd_seo', nm:'아파트 매매거래 (서울)', unit:'호/월', fmt:v=>Math.round(v).toLocaleString('ko-KR')+'호', sf:pc, sl:'3개월 합 1년'},
+  {g:'mkt', k:'diff', nm:'1년 상승 지역 비율', unit:'% (시군구)', fmt:v=>v.toFixed(0)+'%', lvl:true},
+  {g:'res', k:'sale_nat', nm:'아파트 매매가격 (전국)', unit:'지수, 2026.06=100', fmt:v=>v.toFixed(2), sf:pc, sl:'1년'},
+  {g:'res', k:'sale_seo', nm:'아파트 매매가격 (서울)', unit:'지수, 2026.06=100', fmt:v=>v.toFixed(2), sf:pc, sl:'1년'},
+  {g:'res', k:'trade_seo', nm:'아파트 실거래가지수 (서울)', unit:'지수, 2026.06=100', fmt:v=>v.toFixed(1), sf:pc, sl:'1년'},
+  {g:'res', k:'jeon_seo', nm:'아파트 전세가격 (서울)', unit:'지수, 2026.06=100', fmt:v=>v.toFixed(2), sf:pc, sl:'1년'},
+  {g:'res', k:'real_trade_seo', nm:'아파트 실거래가지수 (서울, 실질)', unit:'지수, 2026.06=100', fmt:v=>v.toFixed(1), sf:pc, sl:'1년 (물가 차감)', extra:s=>`물가 몫 ${pc(s.cpipart)} · 명목 ${pc(s.nom)}`},
+  {g:'res', k:'real_trade_nat', nm:'아파트 실거래가지수 (전국, 실질)', unit:'지수, 2026.06=100', fmt:v=>v.toFixed(1), sf:pc, sl:'1년 (물가 차감)', extra:s=>`물가 몫 ${pc(s.cpipart)} · 명목 ${pc(s.nom)}`},
+  {g:'res', k:'usd_trade_seo', nm:'아파트 실거래가지수 (서울, 달러 환산)', unit:'지수, 2026.06=100', fmt:v=>v.toFixed(1), sf:pc, sl:'1년 (달러)', ref:true, extra:s=>`환율 몫 ${pc(s.fxpart)} · 원화 ${pc(s.nom)}`},
+  {g:'res', k:'usd_trade_nat', nm:'아파트 실거래가지수 (전국, 달러 환산)', unit:'지수, 2026.06=100', fmt:v=>v.toFixed(1), sf:pc, sl:'1년 (달러)', ref:true, extra:s=>`환율 몫 ${pc(s.fxpart)} · 원화 ${pc(s.nom)}`},
+];
+function st(p,two,ref){
+  if(ref) return {c:'ref',t:'참고'};
+  if(two){ if(p>=90) return {c:'serious',t:'경계·과열'}; if(p<=10) return {c:'serious',t:'경계·급랭'};
+           if(p>=75) return {c:'warn',t:'주의·상승'}; if(p<=25) return {c:'warn',t:'주의·하락'}; return {c:'good',t:'안정'}; }
+  if(p>=90) return {c:'serious',t:'경계'}; if(p>=75) return {c:'warn',t:'주의'}; return {c:'good',t:'안정'};
+}
+document.getElementById('asof').textContent='갱신 '+D._meta.built+' · 최신 관측 '+D._meta.obs_range;
+const ym=s=>s.replace(/-/g,'.');
+const CAL=D._cal;
+(function(){const tb=document.getElementById('cal');
+ tb.innerHTML='<thead><tr><th class="l">묶음</th><th class="l">자료</th><th class="l">현재 기준</th><th class="l">다음 발표 <span class="tag2">예상</span></th><th class="l">다음 기준</th><th class="l">근거</th></tr></thead><tbody>'+
+  CAL.map(r=>`<tr><td class="l">${r[0]}</td><td class="l">${r[1]}</td><td class="l mono">${r[2]}</td><td class="l mono"><b>${r[3]}</b></td><td class="l mono">${r[4]}</td><td class="l" style="color:var(--ink-3)">${r[5]}</td></tr>`).join('')+'</tbody>';
+ document.getElementById('nextup').innerHTML='다음 갱신 <b>'+D._meta.next+'</b> '+D._meta.next_what+' <span class="tag2">예상</span>';})();
+const gw=document.getElementById('groups');
+
+GROUPS.forEach(G=>{
+  const box=document.createElement('div'); box.className='grp '+G.g;
+  box.innerHTML=`<div class="ghd"><div class="gn"><i></i>${G.nm}</div><div class="gtag">${G.tag}</div><div class="gd">${G.d}</div></div><div class="tiles"></div>`;
+  const tl=box.querySelector('.tiles');
+  IND.filter(i=>i.g===G.g).forEach(i=>{
+    const s=D[i.k], s2=st(s.pct,s.two,i.ref);
+    const chg = (i.lvl?'':`<div class="chg">${i.sl} ${i.sf(s.sig)}</div>`)+(i.extra?`<div class="chg" style="color:var(--ink-3)">${i.extra(s)}</div>`:'');
+    const t=document.createElement('div'); t.className='tile';
+    t.innerHTML=`<div class="nm">${i.nm}</div><div class="val" style="${i.fmt===bil?'font-size:15px':''}">${i.fmt(s.last)}</div>${chg}
+      <div class="meta"><span>${s.pct.toFixed(0)} 백분위 · ${ym(s.asof)}</span><span class="pill ${s2.c}"><i></i>${s2.t}</span></div>`;
+    tl.appendChild(t);
+  });
+  gw.appendChild(box);
+});
+
+const box=document.getElementById('charts');
+let years=10, mode='sig';
+function ser(s){return mode==='sig'?{d:s.sd,v:s.sv}:{d:s.d,v:s.v};}
+function slice(x){ if(!years) return x; const last=x.d[x.d.length-1]; const y0=(+last.slice(0,4)-years)+last.slice(4);
+  const i0=Math.max(0,x.d.findIndex(d=>d>=y0)); return {d:x.d.slice(i0),v:x.v.slice(i0)}; }
+const NS='http://www.w3.org/2000/svg';
+function mk(t,a){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;}
+function nice(lo,hi,n){const span=hi-lo||1;const step0=span/n;const p=Math.pow(10,Math.floor(Math.log10(step0)));const m=[1,2,2.5,5,10].find(x=>x*p>=step0)*p;const out=[];for(let v=Math.ceil(lo/m)*m;v<=hi+1e-9;v+=m)out.push(+v.toFixed(10));return out;}
+function fmtAx(v){return Math.abs(v)>=1000?Math.round(v).toLocaleString('ko-KR'):(+v.toFixed(2));}
+function draw(el,i){
+  const s=D[i.k], sl=slice(ser(s)), cv=el.querySelector('.cv'); cv.innerHTML='';
+  const sig=mode==='sig', isBil=(!sig&&i.fmt===bil);
+  const vv=isBil?sl.v.map(v=>v/1000):sl.v;   // 원 지표 보기에서 대출 잔액은 조원 축
+  el.querySelector('.unit').textContent = sig ? (i.lvl?i.unit:(i.sunit||(i.sf===pp?'%p':'%'))) : (isBil?'조원 (축 라벨)':i.unit);
+  el.querySelector('.cap').textContent = sig ? (i.lvl?'수준으로 판정':`${i.sl} 변화로 판정`)+` · ${ym(s.sig_start)}~` : `원 지표 · ${ym(s.d[0])}~`;
+  const W=cv.clientWidth||340, H=180, L=50, R=10, T=8, B=22;
+  const th = sig ? (s.two?[[s.q['10'],'var(--serious)'],[s.q['25'],'var(--warn)'],[s.q['75'],'var(--warn)'],[s.q['90'],'var(--serious)']]:[[s.q['75'],'var(--warn)'],[s.q['90'],'var(--serious)']]) : [];
+  const vals=vv.concat(th.map(x=>x[0])); let lo=Math.min(...vals), hi=Math.max(...vals); const pad=(hi-lo)*0.06||1; lo-=pad; hi+=pad;
+  const n=vv.length-1, X=k=>L+(W-L-R)*k/Math.max(1,n), Y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
+  const svg=mk('svg',{width:W,height:H,viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':i.nm+' 추이'});
+  nice(lo,hi,4).forEach(v=>{svg.appendChild(mk('line',{x1:L,x2:W-R,y1:Y(v),y2:Y(v),stroke:'var(--grid)','stroke-width':1}));
+    const t=mk('text',{x:L-6,y:Y(v)+4,'text-anchor':'end','font-size':11,fill:'var(--ink-3)','font-family':'var(--f-mono)'});t.textContent=fmtAx(v);svg.appendChild(t);});
+  if(sig && lo<0 && hi>0) svg.appendChild(mk('line',{x1:L,x2:W-R,y1:Y(0),y2:Y(0),stroke:'var(--ink-3)','stroke-width':1}));
+  let lastY=null; const ys=[]; sl.d.forEach((d,k)=>{const y=d.slice(0,4); if(y!==lastY){lastY=y; ys.push(k);}});
+  const stepY=Math.ceil(ys.length/5); ys.filter((_,j)=>j%stepY===0).forEach(k=>{const t=mk('text',{x:X(k),y:H-6,'text-anchor':'middle','font-size':11,fill:'var(--ink-3)','font-family':'var(--f-mono)'});t.textContent=sl.d[k].slice(0,4);svg.appendChild(t);});
+  th.forEach(([v,c])=>svg.appendChild(mk('line',{x1:L,x2:W-R,y1:Y(v),y2:Y(v),stroke:c,'stroke-width':1,'stroke-dasharray':'4 4'})));
+  svg.appendChild(mk('path',{d:vv.map((v,k)=>(k?'L':'M')+X(k).toFixed(1)+' '+Y(v).toFixed(1)).join(''),fill:'none',stroke:'var(--g)','stroke-width':2,'stroke-linejoin':'round'}));
+  svg.appendChild(mk('circle',{cx:X(n),cy:Y(vv[n]),r:3.5,fill:'var(--g)',stroke:'var(--surface)','stroke-width':2}));
+  const vl=mk('line',{y1:T,y2:H-B,stroke:'var(--ink-3)','stroke-width':1,visibility:'hidden'}); const dot=mk('circle',{r:4,fill:'var(--g)',stroke:'var(--surface)','stroke-width':2,visibility:'hidden'});
+  svg.appendChild(vl); svg.appendChild(dot);
+  const hit=mk('rect',{x:L,y:T,width:W-L-R,height:H-T-B,fill:'transparent'}); svg.appendChild(hit);
+  const tip=document.createElement('div'); tip.className='tip'; tip.hidden=true;
+  const tf = sig ? (i.lvl?i.fmt:i.sf) : i.fmt;
+  function move(ev){const r=svg.getBoundingClientRect();const px=(ev.touches?ev.touches[0].clientX:ev.clientX)-r.left;let k=Math.round((px-L)/(W-L-R)*n);k=Math.max(0,Math.min(n,k));
+    vl.setAttribute('x1',X(k));vl.setAttribute('x2',X(k));vl.setAttribute('visibility','visible');dot.setAttribute('cx',X(k));dot.setAttribute('cy',Y(vv[k]));dot.setAttribute('visibility','visible');
+    tip.hidden=false;tip.innerHTML=`<span>${ym(sl.d[k])}</span><b>${tf(sl.v[k])}</b>`;const tx=Math.min(Math.max(X(k)-70,0),W-200);tip.style.left=tx+'px';}
+  function leave(){vl.setAttribute('visibility','hidden');dot.setAttribute('visibility','hidden');tip.hidden=true;}
+  hit.addEventListener('mousemove',move);hit.addEventListener('touchmove',move,{passive:true});hit.addEventListener('mouseleave',leave);hit.addEventListener('touchend',leave);
+  cv.appendChild(svg); cv.appendChild(tip);
+}
+// ---- 판독 자동 생성 ----
+(function(){
+  const S=k=>st(D[k].pct,D[k].two).t, P=k=>D[k].pct.toFixed(0), V=k=>D[k].sig;
+  const f2=v=>(v>0?'+':'')+v.toFixed(2), f1=v=>(v>0?'+':'')+v.toFixed(1);
+  const L=[];
+  L.push(`<b>글로벌</b>: 금융스트레스(OFR) ${P('g_ofr')} 백분위 <b>${S('g_ofr')}</b>. 최근 21영업일 미국 10년물 ${f2(V('g_ust10'))}%p(${P('g_ust10')} 백분위, ${S('g_ust10')}), 일본 10년물 ${f2(V('g_jgb10'))}%p(${P('g_jgb10')}, ${S('g_jgb10')}), 원/달러 ${f1(V('g_krw'))}%(${P('g_krw')}, ${S('g_krw')}).`);
+  const b=D.base, m=D.mort;
+  L.push(`<b>금리 관문</b>: 기준금리 ${b.last.toFixed(2)}%(3개월 ${f2(b.sig)}%p), 신규 주택담보대출 금리 ${m.last.toFixed(2)}%(${ym(m.asof)}, 3개월 ${f2(m.sig)}%p, ${P('mort')} 백분위 <b>${S('mort')}</b>), 국고채 3년 ${D.ktb3.last.toFixed(2)}%(${S('ktb3')}).`);
+  L.push(`<b>국내 취약성</b>: 주택관련대출 1년 ${f1(V('hloan'))}%(${S('hloan')}), 전세대출 ${f1(V('jloan'))}%(${S('jloan')}), 역전세 위험 지역 ${D.rev_jeon.last.toFixed(1)}%(${S('rev_jeon')}), 미분양 ${Math.round(D.unsold.last).toLocaleString('ko-KR')}호(${S('unsold')}).`);
+  L.push(`<b>수급·거래</b>: 서울 매수우위 ${D.sup_seo_wk.last.toFixed(1)}(${ym(D.sup_seo_wk.asof)}, ${P('sup_seo_wk')} 백분위 <b>${S('sup_seo_wk')}</b>), 서울 매매거래 3개월 합 1년 ${f1(V('trd_seo'))}%(${S('trd_seo')}), 1년 상승 지역 ${D.diff.last.toFixed(0)}%(${S('diff')}).`);
+  const r=D.real_trade_seo, u=D.usd_trade_seo;
+  L.push(`<b>가격</b>: 서울 아파트 1년 ${f1(V('sale_seo'))}%(${P('sale_seo')} 백분위 <b>${S('sale_seo')}</b>), 전국 ${f1(V('sale_nat'))}%(${S('sale_nat')}). 서울 실거래가 ${f1(r.nom)}% 가운데 물가 몫 ${f1(r.cpipart)}%를 빼면 실질 ${f1(r.sig)}%(${P('real_trade_seo')} 백분위 <b>${S('real_trade_seo')}</b>). 달러로는 ${f1(u.sig)}%(참고, 환율 몫 ${f1(u.fxpart)}%).`);
+  const hot=D.sale_seo.pct>=90, gate=D.mort.pct>=90, glob=st(D.g_ofr.pct).c!=='good';
+  let note='<b>읽는 법</b><span class="lab">추정</span>: ';
+  if(hot&&gate) note+='"서울 가격 과열 + 대출 금리 급등"이 겹쳤습니다. 2006년 이후 같은 조합은 2007년과 2008년뿐이었고, 글로벌 위기가 없던 2007년에는 1년 뒤에도 더 올랐으며 위기가 겹친 2008년에는 1~2년 뒤 0~2% 내렸습니다. 결과를 가른 것은 글로벌 스트레스였습니다(사례 두 묶음).'+(glob?' 지금은 글로벌 스트레스가 켜져 있어 하방 위험이 큽니다.':' 지금 글로벌 스트레스는 꺼져 있습니다.');
+  else if(hot) note+='서울 가격은 과열이지만 대출 금리 관문은 아직 열려 있습니다. 금리 신호가 먼저 켜지는지 봅니다.';
+  else if(gate) note+='대출 금리가 빠르게 오르지만 가격은 과열 구간이 아닙니다. 금리는 수개월~1년 뒤 가격에 반영되는 경향이 있습니다.';
+  else note+='가격과 금리 모두 극단 구간이 아닙니다.';
+  L.push(note);
+  L.push('<b>확인할 것</b>: 매주 서울 매수우위지수가 100 아래로 내려오는지, 글로벌 금융스트레스가 "주의"로 바뀌는지, 정책 규제(LTV·DSR) 변화가 있는지. 매수를 검토한다면 대출 금리를 현재보다 1%p 높게 놓고 상환 계획을 시험합니다.');
+  document.getElementById('read').innerHTML=L.map(x=>'<li>'+x+'</li>').join('');
+})();
+const cards=[];
+GROUPS.forEach(G=>{const sec=document.createElement('div');sec.className='cgrp '+G.g;
+  sec.innerHTML=`<div class="cgh"><i></i>${G.nm}<span>${G.tag}</span></div><div class="charts"></div>`;box.appendChild(sec);
+  const cw=sec.querySelector('.charts');
+  IND.filter(i=>i.g===G.g).forEach(i=>{const el=document.createElement('div');el.className='chart';
+    el.innerHTML=`<div class="hd"><h3>${i.nm}</h3><span class="unit"></span></div><div class="cv"></div><p class="cap"></p>`;cw.appendChild(el);cards.push([el,i]);});});
+function drawAll(){cards.forEach(([el,i])=>draw(el,i));}
+drawAll();
+try{new ResizeObserver(()=>drawAll()).observe(box);}catch(e){addEventListener('resize',drawAll);}
+document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{
+  const grp=b.parentElement; grp.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  if(b.dataset.m) mode=b.dataset.m; else years=+b.dataset.y; drawAll();
+}));
+</script>
