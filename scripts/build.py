@@ -40,7 +40,7 @@ D["_meta"] = dict(built=now.strftime("%Y-%m-%d %H:%M"), obs_range=f"{obs[0]} ~ {
 
 tpl = open(os.path.join(BASE, "template", "page.html"), encoding="utf-8").read()
 html = ('<!doctype html>\n<html lang="ko">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n'
-        '<meta name="robots" content="noindex,nofollow">\n<title>부동산 Black Swan</title>\n</head>\n<body>\n'
+        '<meta name="robots" content="noindex,nofollow">\n<title>아파트 시장 신호등</title>\n</head>\n<body>\n'
         + tpl.replace("__DATA__", json.dumps(D, ensure_ascii=False)) + "\n</body>\n</html>\n")
 os.makedirs(os.path.join(BASE, "docs"), exist_ok=True)
 open(os.path.join(BASE, "docs", "index.html"), "w", encoding="utf-8").write(html)
